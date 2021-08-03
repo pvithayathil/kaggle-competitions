@@ -6,7 +6,7 @@ Predict which passengers survived the Titanic survived
 This my attempt on the Classic [Kaggle Titanic ML Challenge](https://www.kaggle.com/c/titanic/overview)
 
 #### Results
-Current Highest Score 79.9% accuracy on 
+Current Highest Score: 79.9% accuracy on 
 Kaggle Competition Board using a Random Foreest Classifier
 
 #### Project Contents
