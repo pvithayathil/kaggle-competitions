@@ -8,6 +8,8 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 
+# Create a data utils directory and import (such as read_preprocessed_data)
+# Rename to Path to Data and just have 1
 READ_PATH = '/Users/pvithayathil/homebound/kaggle/kobe-bryant/data/processed'
 WRITE_PATH = '/Users/pvithayathil/homebound/kaggle/kobe-bryant/data/processed'
 
