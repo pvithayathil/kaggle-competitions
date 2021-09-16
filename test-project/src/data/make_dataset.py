@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 load_dotenv(find_dotenv())
-RAW_DATA_PATH=os.getenv("RAW_DATA_PATH")
+RAW_DATA_PATH=os.getcwd()+os.getenv("RAW_DATA_PATH")
 PROCESSED_PATH= os.getcwd()+os.getenv("PROCESSED_PATH")
 
 def main(input_filepath: str, output_filepath: str):
