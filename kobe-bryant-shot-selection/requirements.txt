@@ -1,6 +1,7 @@
 # local package
 -e .
 pandas==1.0.5
+pandasql==0.7.3
 sklearn
 scipy==1.5.4
 numpy==1.19.4
