@@ -8,6 +8,8 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
 
 load_dotenv(find_dotenv())
 PROCESSED_PATH = os.getcwd() + os.getenv("PROCESSED_PATH")
@@ -61,6 +63,7 @@ def train(df_target: pd.DataFrame, train: sparse.csr_matrix, output_path: str):
     Returns:
         side effect: trains model and saves it as a model file
     """
+    """
     classifier_pipeline = Pipeline(
         steps=[("rfc", RandomForestClassifier(random_state=0))]
     )
@@ -71,12 +74,30 @@ def train(df_target: pd.DataFrame, train: sparse.csr_matrix, output_path: str):
         "rfc__max_features": ["sqrt", "log2"],
         "rfc__max_leaf_nodes": [6, 8, 10],
     }
+    """
+
+    classifier_pipeline = Pipeline(
+        steps=[("xgb", XGBClassifier(objective= 'binary:logistic',
+                                     eval_metric='aucpr',
+                                     random_state=0))]
+    )
+
+    # Score:
+    # {'xgb__learning_rate': 0.01, 'xgb__max_depth': 5, 'xgb__n_estimators': 1000}
+    # weight avg .70 .69 .68
+
+    # Declare dynamic parameters here
+    pipeline_params = {
+    'xgb__n_estimators': [10, 50,100,1000],
+    'xgb__max_depth': [3, 5, 9],
+    'xgb__learning_rate': [0.01, 0.05, 0.1],
+    }
 
     search = GridSearchCV(
         classifier_pipeline,
         pipeline_params,
         scoring="roc_auc",
-        cv=10,
+        cv=5,
         n_jobs=-1,
         verbose=False,
     )
