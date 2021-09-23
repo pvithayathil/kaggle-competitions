@@ -53,7 +53,14 @@ FEATURES_QUERY = """
     SUM(shot_made_flag * shot_point_value) OVER (PARTITION BY game_id
                          ORDER BY period asc, minutes_remaining desc, seconds_remaining desc) - 
                          shot_made_flag * shot_point_value AS num_points_made_in_game, 
-    
+    SUM(shot_made_flag) OVER (PARTITION BY game_id
+                         ORDER BY period asc, minutes_remaining desc, seconds_remaining desc ROWS 5 PRECEDING ) 
+                         - shot_made_flag 
+                         AS num_shots_made_in_last_five_attempts, 
+    CASE WHEN 
+    matchup LIKE '%@%' THEN FALSE 
+    ELSE TRUE
+    END as is_home_game,
     game_date_features.game_is_back_to_back,
     game_date_features.num_game_last_7_days
     FROM data
