@@ -6,7 +6,7 @@ import pandas as pd
 from scipy import sparse
 import pickle
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 
@@ -31,7 +31,6 @@ def read_preprocessed_data(input_path: str, is_train: bool) -> pd.DataFrame:
 
     return df
 
-
 def make_features(df: pd.DataFrame) -> pd.DataFrame:
     """
 
@@ -40,14 +39,66 @@ def make_features(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         df_features: dataframe that has features
     """
-    feature_cols = [
-        "combined_shot_type",
+    # Create Loc X,Y Binned Data:
+    # X axis between [-250, 250] and
+    # Y axis between [-50, 800]
+    loc_x_bin = [-251, -200, -150, -100, -50, 0,
+                 50, 100, 150, 200, 251
+                 ]
+    loc_x_bin_labels = [-250, -200, -150, -100, -50, 0,
+                        50, 100, 150, 200
+                        ]
+
+    loc_y_bin = [-50, 0, 50, 100, 150,
+                 200, 250, 300, 350,
+                 400, 450, 500, 550,
+                 800
+                 ]
+    loc_y_bin_labels = [-50, 0, 50, 100, 150,
+                        200, 250, 300, 350,
+                        400, 450, 500, 550,
+                        ]
+    # Loc_x, and loc_y binning
+    df['loc_x_cut'] = pd.cut(df['loc_x'], loc_x_bin, labels=loc_x_bin_labels)
+    df['loc_y_cut'] = pd.cut(df['loc_y'], loc_y_bin, labels=loc_y_bin_labels)
+    df['loc_bin'] = df['loc_x_cut'].astype(str) + "_" + df['loc_y_cut'].astype(str)
+
+    # Create Date Columns
+    df['season'] = pd.to_datetime(df['season'].str[:4], infer_datetime_format=True)
+    df['game_month'] = df['game_date'].dt.month
+
+    # Feature Scored Lots of Points in Game
+    df['made_over_25_points_in_shots'] = np.select([df['num_points_made_in_game'] >= 25],
+                                                         [1],
+                                                         default=0)
+    # FG % in the game @ time of the shot
+    df["field_goal_pct_in_game"] = 1.0 * df['num_shots_made_in_game'] / df['num_shots_taken_in_game']
+    df["field_goal_pct_in_game"].fillna(0, inplace=True)
+
+    cat_vars = [
+        "action_type",
         "period",
+        "playoffs",
         "season",
-        "shot_zone_basic",
-        "shot_zone_range",
+        "opponent",
+        "shot_type",
+        "num_shots_made_in_last_five_attempts",
+        "num_game_last_7_days",
+        "game_month",
+        "loc_bin"
     ]
-    df_features = df[feature_cols]
+
+    num_vars = [
+        "shot_distance",
+        "num_shots_taken_in_game",
+        "field_goal_pct_in_game",
+        "shot_is_in_possibly_clutch_moment",
+        "is_home_game",
+        "game_is_back_to_back",
+        "made_over_25_points_in_shots"
+    ]
+
+    df_features = df[cat_vars+num_vars]
     return df_features
 
 
@@ -69,20 +120,45 @@ def make_datasets_model_ready(
 
     # define transformers
     si_0 = SimpleImputer(strategy="constant", fill_value="missing")
-    ohe = OneHotEncoder()
+    ohe = OneHotEncoder(handle_unknown = 'ignore')
+
+    si_1 = SimpleImputer(strategy='mean')
+    mms = MinMaxScaler()
+
     # define column groups with same processing
     cat_vars = [
-        "combined_shot_type",
+        "action_type",
         "period",
+        "playoffs",
         "season",
-        "shot_zone_basic",
-        "shot_zone_range",
+        "opponent",
+        "shot_type",
+        "num_shots_made_in_last_five_attempts",
+        "num_game_last_7_days",
+        "game_month",
+        "loc_bin"
+    ]
+
+    num_vars = [
+        "shot_distance",
+        "num_shots_taken_in_game",
+        "field_goal_pct_in_game",
+        "shot_is_in_possibly_clutch_moment",
+        "is_home_game",
+        "game_is_back_to_back",
+        "made_over_25_points_in_shots"
     ]
     # set up pipelines for each column group
     categorical_pipe = Pipeline([("si_0", si_0), ("ohe", ohe)])
+    numerical_pipe = Pipeline([("si_1", si_1), ("mms", mms)])
+
     # set up columnTransformer
     col_transformer = ColumnTransformer(
-        transformers=[("cats", categorical_pipe, cat_vars)], remainder="drop", n_jobs=-1
+        transformers=[
+            ("cats", categorical_pipe, cat_vars),
+            ('nums', numerical_pipe, num_vars),
+        ],
+        remainder="drop", n_jobs=-1
     )
 
     X_train_transformed = col_transformer.fit_transform(df_train)
