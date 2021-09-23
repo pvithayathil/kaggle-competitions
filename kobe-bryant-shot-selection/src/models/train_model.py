@@ -8,9 +8,12 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
 
 load_dotenv(find_dotenv())
-PROCESSED_PATH= os.getcwd()+os.getenv("PROCESSED_PATH")
+PROCESSED_PATH = os.getcwd() + os.getenv("PROCESSED_PATH")
+
 
 def read_target_data(input_path: str, is_train: bool) -> pd.DataFrame:
     """
@@ -23,12 +26,13 @@ def read_target_data(input_path: str, is_train: bool) -> pd.DataFrame:
         df:  pre-processed dataframe ready to be made into features
     """
     if is_train:
-        target = pd.read_csv(input_path+'/train_target.csv')
+        target = pd.read_csv(input_path + "/train_target.csv")
 
     else:
-        target = pd.read_csv(input_path+'/test_target.csv')
+        target = pd.read_csv(input_path + "/test_target.csv")
 
     return target
+
 
 def read_features_data(input_path: str, is_train: bool) -> sparse.csr_matrix:
     """
@@ -41,10 +45,10 @@ def read_features_data(input_path: str, is_train: bool) -> sparse.csr_matrix:
         data_matrix: features matrix ready for training
     """
     if is_train:
-        data_matrix = sparse.load_npz(input_path+'/train.npz')
+        data_matrix = sparse.load_npz(input_path + "/train.npz")
 
     else:
-        data_matrix = sparse.load_npz(input_path+'/test.npz')
+        data_matrix = sparse.load_npz(input_path + "/test.npz")
 
     return data_matrix
 
@@ -59,20 +63,43 @@ def train(df_target: pd.DataFrame, train: sparse.csr_matrix, output_path: str):
     Returns:
         side effect: trains model and saves it as a model file
     """
-    classifier_pipeline = Pipeline(steps=[
-        ("rfc", RandomForestClassifier(random_state=0))
-    ])
+    """
+    classifier_pipeline = Pipeline(
+        steps=[("rfc", RandomForestClassifier(random_state=0))]
+    )
 
     # Declare dynamic parameters here
     pipeline_params = {
-        'rfc__max_depth': [3, 5, 7, 9, 11],
-        'rfc__max_features': ["sqrt", "log2"],
-        'rfc__max_leaf_nodes': [6, 8, 10],
+        "rfc__max_depth": [3, 5, 7, 9, 11],
+        "rfc__max_features": ["sqrt", "log2"],
+        "rfc__max_leaf_nodes": [6, 8, 10],
+    }
+    """
+
+    classifier_pipeline = Pipeline(
+        steps=[("xgb", XGBClassifier(objective= 'binary:logistic',
+                                     eval_metric='aucpr',
+                                     random_state=0))]
+    )
+
+    # Score:
+    # {'xgb__learning_rate': 0.01, 'xgb__max_depth': 5, 'xgb__n_estimators': 1000}
+    # weight avg .70 .69 .68
+
+    # Declare dynamic parameters here
+    pipeline_params = {
+    'xgb__n_estimators': [10, 50,100,1000],
+    'xgb__max_depth': [3, 5, 9],
+    'xgb__learning_rate': [0.01, 0.05, 0.1],
     }
 
     search = GridSearchCV(
-        classifier_pipeline, pipeline_params,
-        scoring="roc_auc", cv=10, n_jobs=-1, verbose=False
+        classifier_pipeline,
+        pipeline_params,
+        scoring="roc_auc",
+        cv=5,
+        n_jobs=-1,
+        verbose=False,
     )
     search.fit(train, df_target)
 
@@ -82,14 +109,14 @@ def train(df_target: pd.DataFrame, train: sparse.csr_matrix, output_path: str):
     print(classification_report(df_target, search.predict(train)))
 
     # save the model to disk
-    filename = '/finalized_model.sav'
-    pickle.dump(search, open(output_path+filename, 'wb'))
+    filename = "/finalized_model.sav"
+    pickle.dump(search, open(output_path + filename, "wb"))
+
 
 def main(input_filepath, output_filepath):
-    """
-    """
+    """"""
     logger = logging.getLogger(__name__)
-    logger.info('training model')
+    logger.info("training model")
 
     # Read Data
     train_matrx = read_features_data(input_filepath, True)
@@ -98,7 +125,7 @@ def main(input_filepath, output_filepath):
     train(df_target, train_matrx, output_filepath)
 
 
-if __name__ == '__main__':
-    log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+if __name__ == "__main__":
+    log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=log_fmt)
     main(PROCESSED_PATH, PROCESSED_PATH)
