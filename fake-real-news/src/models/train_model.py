@@ -65,7 +65,7 @@ def train(df_target: pd.DataFrame, train: sparse.csr_matrix, output_path: str):
         side effect: trains model and saves it as a model file
     """
 
-    train=train['text']
+    train=train['clean_joined_title_and_text']
     bow_pipeline = Pipeline(
         steps=[
             ("tfidf", TfidfVectorizer()),
@@ -75,9 +75,7 @@ def train(df_target: pd.DataFrame, train: sparse.csr_matrix, output_path: str):
 
     # Declare dynamic parameters here
     pipeline_params = {
-        "rfc__max_depth": [3, 5, 7, 9, 11],
-        "rfc__max_features": ["sqrt", "log2"],
-        "rfc__max_leaf_nodes": [6, 8, 10],
+        "rfc__max_depth": [3, 7, 15, 50],
     }
 
     search = GridSearchCV(
