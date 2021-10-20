@@ -3,6 +3,12 @@ fake-real-news
 
 Fake Real News Kaggle DS Problem
 
+Resources
+------------
+- [Kaggle Example](https://www.kaggle.com/paramarthasengupta/fake-news-detector-eda-prediction-99)
+- [TfidVectorizer](https://towardsdatascience.com/the-triune-pipeline-for-three-major-transformers-in-nlp-18c14e20530)
+- [Text Data Pre-processing](https://towardsdatascience.com/pipeline-for-text-data-pre-processing-a9887b4e2db3)
+
 Project Organization
 ------------
 
